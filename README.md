@@ -2,6 +2,16 @@
 
 一个 Windows 桌面应用，能够实时捕获麦克风输入，使用本地 Whisper 模型进行语音识别，并将识别结果模拟键盘输入发送到任意应用程序中。
 
+## 效果演示
+
+```
+1. 打开记事本/微信/浏览器等任意应用
+2. 按住 ALT 键
+3. 说话："你好世界"
+4. 松开 ALT 键
+5. 文字自动输入到应用中
+```
+
 ## 功能特点
 
 - **实时语音识别**: 使用 faster-whisper 本地模型，无需网络连接
@@ -11,86 +21,80 @@
 - **CPU 优化**: 自动检测 CPU 指令集，选择最佳计算类型
 - **命令行模式**: 简洁的命令行界面，避免 GUI 冲突
 
-## 快速开始
+## 使用方法（三步即可）
 
-### 1. 环境准备
-
-确保已安装 Python 3.9（推荐使用虚拟环境 `venv_py39`）：
+### 步骤 1：克隆项目
 
 ```bash
-# 创建虚拟环境
+git clone https://github.com/MyLacia/speak-to-input.git
+cd speak-to-input
+```
+
+### 步骤 2：安装依赖并下载模型
+
+```bash
+# 创建 Python 3.9 虚拟环境
 python -m venv venv_py39
 
 # 激活虚拟环境
 venv_py39\Scripts\activate
-```
 
-### 2. 安装依赖
-
-```bash
+# 安装依赖
 pip install -r requirements.txt
+
+# 下载模型（选择以下任一方式）
 ```
 
-### 3. 下载模型
+**下载模型方式：**
 
-**方法一：手动下载（推荐）**
+1. **手动下载（推荐）**：
+   - 访问 https://hf-mirror.com/Systran/faster-whisper-small/tree/main
+   - 下载 `model.bin` 文件
+   - 创建文件夹 `models/small/`，放入 `model.bin`
 
-1. 从以下地址下载 `model.bin` 文件：
-   - 官方: https://huggingface.co/Systran/faster-whisper-small/tree/main
-   - 国内镜像: https://hf-mirror.com/Systran/faster-whisper-small/tree/main
-
-2. 将文件放置到：
+2. **Python 脚本下载**：
+   ```python
+   import os
+   os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+   from huggingface_hub import snapshot_download
+   snapshot_download("Systran/faster-whisper-small", local_dir="models/small")
    ```
-   models/small/model.bin
-   ```
 
-**方法二：使用脚本下载**
+### 步骤 3：运行应用
 
-```bash
-# 创建下载脚本
-# 将以下内容保存为 download.py 后运行：
-import os
-os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-from huggingface_hub import snapshot_download
-snapshot_download(
-    repo_id="Systran/faster-whisper-small",
-    local_dir="models/small",
-    local_dir_use_symlinks=False
-)
-```
-
-### 4. 运行应用
-
-**双击运行:**
+**双击运行：**
 ```
 run_cli.bat
 ```
 
-**命令行运行:**
+**命令行运行：**
 ```bash
 venv_py39\Scripts\python.exe cli_app.py
 ```
 
-### 5. 使用方法
+### 开始使用
 
-1. 启动应用后，等待模型加载完成
-2. **按住 ALT 键** 说话，松开自动发送
-3. 在记事本、浏览器、微信等任意应用中使用
+1. 看到提示后，打开记事本或任何你想输入文字的应用
+2. **按住 ALT 键** 开始说话
+3. **松开 ALT 键** 自动发送文字
 
 ## 配置说明
 
-配置文件位于 `config.yaml`：
+创建 `config.yaml` 文件（如果不存在）：
 
 ```yaml
+# 转录器配置
 transcriber:
-  model_size: small      # 模型大小: tiny/base/small/medium/large
+  model_size: small      # 模型: tiny/base/small/medium/large
   language: zh           # 语言: zh=中文, en=英文, null=自动检测
-  compute_type: auto     # 计算类型: auto=int8/float32自动选择
+  compute_type: auto     # 计算类型: auto=自动选择
 
+# 音频配置
 audio:
   sample_rate: 16000     # 采样率
   device_index: null     # 麦克风设备索引（留空使用默认）
 
+# 键盘配置
 keyboard:
   method: clipboard      # 输入方式: clipboard=剪贴板
 ```

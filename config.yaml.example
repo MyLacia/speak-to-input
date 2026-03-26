@@ -1,0 +1,38 @@
+# Speak to Input 配置文件示例
+# 复制此文件为 config.yaml 并根据需要修改
+
+# 转录器配置
+transcriber:
+  model_size: small      # 模型大小: tiny/base/small/medium/large
+  language: zh           # 语言: zh=中文, en=英文, null=自动检测
+  compute_type: auto     # 计算类型: auto=int8/float32自动选择
+  device: null           # 设备: null=自动, cuda=GPU
+  beam_size: 5           # 束搜索大小
+  num_workers: 1         # 工作线程数
+
+# 音频配置
+audio:
+  sample_rate: 16000     # 采样率 (Hz)
+  channels: 1            # 声道数 (1=单声道)
+  chunk_duration: 0.5    # 音频块时长 (秒)
+  device_index: null     # 麦克风设备索引 (留空使用默认)
+
+# 键盘配置
+keyboard:
+  method: clipboard      # 输入方式: clipboard=剪贴板+Ctrl+V
+  paste_delay: 0.1       # 粘贴延迟 (秒)
+  typing_speed: 0.01     # 打字速度 (秒)
+
+# 快捷键配置
+hotkey:
+  use_alt_trigger: true  # 启用 ALT 键触发
+  toggle: <ctrl>+<shift>+<r>   # 切换录音
+  pause: <ctrl>+<shift>+<p>    # 暂停
+  clear: <ctrl>+<shift>+<c>    # 清除文本
+
+# 语音检测配置
+vad:
+  enabled: true                    # 启用语音活动检测
+  threshold: 0.5                   # 语音阈值 (0-1)
+  min_silence_duration_ms: 800     # 最小静音时长 (毫秒)
+  speech_pad_ms: 400               # 语音填充 (毫秒)
