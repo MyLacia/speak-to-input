@@ -134,7 +134,8 @@ def has_editable_cursor() -> bool:
     Check if the currently focused window has an editable text cursor.
 
     This uses multiple heuristics:
-    1. Window class name check
+    1. Window class name check (editable app classes)
+    1.5. Terminal window class check (terminals are always text-input)
     2. Window title check
     3. Cursor shape check (IBeam cursor)
 
@@ -153,6 +154,17 @@ def has_editable_cursor() -> bool:
                for editable_class in EDITABLE_WINDOW_CLASSES):
             logger.debug(f"Editable cursor detected by class: {class_name}")
             return True
+
+    # Check 1.5: Terminal windows are always editable (text input by nature)
+    terminal_classes = {
+        'ConsoleWindowClass',  # Windows Console (cmd.exe)
+        'CASCADIA_HOSTING_WINDOW_CLASS',  # Windows Terminal
+        'VirtualConsoleClass',  # Some terminal emulators
+        'PuTTYClass',  # PuTTY SSH client
+    }
+    if class_name in terminal_classes:
+        logger.debug(f"Editable cursor detected by terminal class: {class_name}")
+        return True
 
     # Check 2: Window title
     if title:
