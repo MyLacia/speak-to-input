@@ -63,6 +63,7 @@ class AudioConfig:
     channels: int = 1
     chunk_duration: float = 0.5  # Duration of each audio chunk in seconds
     device_index: Optional[int] = None  # None for default microphone
+    silence_threshold: float = 0.002  # Energy threshold for silence detection (lowered for better sensitivity)
 
 
 @dataclass
@@ -84,6 +85,17 @@ class HotkeyConfig:
 
 
 @dataclass
+class ContinuousConfig:
+    """Continuous listening mode configuration"""
+    enabled: bool = False
+    trigger_word: str = "嘿"  # Keyword to trigger recording (changed to simpler word)
+    pause_threshold: float = 0.5  # Pause duration (seconds) after trigger word to start capturing
+    timeout_duration: float = 2.0  # Timeout (seconds) of silence to end recording
+    min_capture_duration: float = 0.3  # Minimum capture duration after trigger
+    buffer_duration: float = 5.0  # How long of audio to keep before trigger word
+
+
+@dataclass
 class Config:
     """Main configuration class"""
     vad: VADConfig = field(default_factory=VADConfig)
@@ -91,9 +103,12 @@ class Config:
     audio: AudioConfig = field(default_factory=AudioConfig)
     keyboard: KeyboardConfig = field(default_factory=KeyboardConfig)
     hotkey: HotkeyConfig = field(default_factory=HotkeyConfig)
+    continuous: ContinuousConfig = field(default_factory=ContinuousConfig)
 
     # UI Language (zh = Chinese, en = English)
     language: str = "zh"
+    # Listen mode: alt or continuous
+    listen_mode: str = "alt"
 
     # Paths
     model_cache_dir: str = "models"
@@ -152,6 +167,8 @@ class Config:
             config.keyboard = KeyboardConfig(**data["keyboard"])
         if "hotkey" in data:
             config.hotkey = HotkeyConfig(**data["hotkey"])
+        if "continuous" in data:
+            config.continuous = ContinuousConfig(**data["continuous"])
 
         return config
 
@@ -165,6 +182,7 @@ class Config:
             "audio": self.audio.__dict__,
             "keyboard": self.keyboard.__dict__,
             "hotkey": self.hotkey.__dict__,
+            "continuous": self.continuous.__dict__,
         }
 
         with open(path, "w", encoding="utf-8") as f:

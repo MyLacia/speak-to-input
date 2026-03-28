@@ -1,8 +1,11 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo  Speak to Input - Dev Mode (Python 3.9)
+echo 安装 OpenCC (繁简转换)
 echo ========================================
 echo.
-venv_py39\Scripts\python.exe main.py
+pip install opencc
+echo.
+echo 安装完成！
+echo.
 pause

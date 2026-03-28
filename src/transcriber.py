@@ -16,6 +16,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
+# Try to import opencc for traditional to simplified Chinese conversion
+try:
+    import opencc
+    OPENCC_AVAILABLE = True
+except ImportError:
+    OPENCC_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("opencc not available, traditional to simplified Chinese conversion disabled")
+
 from config import TranscriberConfig, get_config
 
 
@@ -63,6 +72,16 @@ class TranscriptionResult:
 class Transcriber:
     """Speech recognition engine using faster-whisper"""
 
+    # Known hallucination texts to filter out
+    HALLUCINATION_PATTERNS = [
+        "字幕by索兰娅",
+        "字幕由Amara.org社群提供",
+        "Subtitles by",
+        "Thank you",
+        "Thank you for watching",
+        "谢谢观看",
+    ]
+
     def __init__(self, config: Optional[TranscriberConfig] = None,
                  progress_callback: Optional[Callable[[str, int], None]] = None,
                  timeout: int = 120):
@@ -95,6 +114,88 @@ class Transcriber:
 
         # NOTE: Model loading deferred to load() method to avoid thread issues
         # The _ModelLoaderWorker will explicitly call load_model() after creation
+
+        # OpenCC converter for traditional to simplified Chinese
+        self._converter = None
+        if OPENCC_AVAILABLE:
+            try:
+                self._converter = opencc.OpenCC('t2s')  # Traditional to Simplified
+                logger.info("OpenCC converter initialized for t2s conversion")
+            except Exception as e:
+                logger.warning(f"Failed to initialize OpenCC: {e}")
+
+    def _is_hallucination(self, text: str) -> bool:
+        """Check if text matches known hallucination patterns"""
+        if not text:
+            return False
+
+        text_lower = text.lower().strip()
+
+        for pattern in self.HALLUCINATION_PATTERNS:
+            if pattern.lower() in text_lower:
+                logger.info(f"Hallucination filtered: '{text}' matches pattern '{pattern}'")
+                return True
+
+        # Don't filter short text - it could be valid single character input
+        # Only filter if it's exactly one of the known hallucination patterns
+        # if len(text.strip()) <= 2:
+        #     logger.debug(f"Hallucination detected: text too short: '{text}'")
+        #     return True
+
+        return False
+
+    def _convert_to_simplified(self, text: str) -> str:
+        """Convert traditional Chinese to simplified Chinese"""
+        if not text or not self._converter:
+            return text
+        try:
+            return self._converter.convert(text)
+        except Exception as e:
+            logger.debug(f"OpenCC conversion failed: {e}")
+            return text
+
+    def _detect_silence(self, audio: np.ndarray, threshold: Optional[float] = None) -> bool:
+        """
+        Detect if audio is mostly silence.
+
+        Args:
+            audio: Audio data
+            threshold: Energy threshold for silence detection (uses config if None)
+
+        Returns:
+            True if audio is considered silence
+        """
+        if threshold is None:
+            # Get threshold from config
+            from config import get_config
+            threshold = get_config().audio.silence_threshold
+
+        # Calculate RMS energy
+        rms = np.sqrt(np.mean(audio ** 2))
+        return rms < threshold
+
+    def has_speech(self, audio: np.ndarray, threshold: Optional[float] = None) -> bool:
+        """
+        Check if audio contains speech (not silence).
+
+        Args:
+            audio: Audio data
+            threshold: Minimum energy threshold to consider as speech (uses config if None)
+
+        Returns:
+            True if audio contains speech
+        """
+        if audio.size == 0:
+            return False
+
+        if threshold is None:
+            # Get threshold from config
+            from config import get_config
+            threshold = get_config().audio.silence_threshold
+
+        # Calculate RMS energy
+        rms = np.sqrt(np.mean(audio ** 2))
+        return rms >= threshold
 
     def load_model(self) -> None:
         """
@@ -338,6 +439,15 @@ class Transcriber:
         if audio.size == 0:
             return None
 
+        # Check audio energy
+        rms = np.sqrt(np.mean(audio ** 2))
+        logger.debug(f"Audio energy: {rms:.6f}, threshold: {get_config().audio.silence_threshold}")
+
+        # Check for silence - return None if audio is too quiet
+        if self._detect_silence(audio):
+            logger.debug(f"Audio is silence (RMS={rms:.6f}), skipping transcription")
+            return None
+
         start_time = time.time()
 
         try:
@@ -365,10 +475,24 @@ class Transcriber:
                     confidence_sum += segment.avg_logprob
                     confidence_count += 1
 
-            text = " ".join(text_parts).strip()
+            # Join segments with comma for Chinese, space for English
+            chinese_chars = sum(1 for t in text_parts for c in t if "\u4e00" <= c <= "\u9fff")
+            total_chars = sum(len(t) for t in text_parts)
+            if chinese_chars > total_chars * 0.3:
+                text = "，".join(text_parts).strip()
+            else:
+                text = " ".join(text_parts).strip()
 
             if not text:
                 return None
+
+            # Check for hallucination before proceeding
+            if self._is_hallucination(text):
+                logger.info(f"Hallucination filtered: '{text}'")
+                return None
+
+            # Convert traditional Chinese to simplified
+            text = self._convert_to_simplified(text)
 
             # Calculate confidence (convert logprob to approximate probability)
             avg_logprob = confidence_sum / confidence_count if confidence_count > 0 else -1.0
@@ -446,12 +570,16 @@ class Transcriber:
         """
         Post-process transcribed text.
 
+        - Convert traditional to simplified Chinese
         - Add punctuation for Chinese
         - Remove extra spaces
         - Capitalize first letter
         """
         if not text:
             return ""
+
+        # Convert traditional to simplified Chinese
+        text = self._convert_to_simplified(text)
 
         # Remove leading/trailing whitespace
         text = text.strip()
@@ -464,14 +592,9 @@ class Transcriber:
         if text and text[0].islower():
             text = text[0].upper() + text[1:]
 
-        # Add period at end if no punctuation
-        if text and text[-1] not in {".", "!", "?", "。", "！", "？", "，", ","}:
-            # Check if mostly Chinese
-            chinese_chars = sum(1 for c in text if "\u4e00" <= c <= "\u9fff")
-            if chinese_chars > len(text) * 0.3:
-                text += "。"  # Chinese period
-            else:
-                text += "."  # English period
+        # Remove trailing period/period-like punctuation (user doesn't want it)
+        if text and text[-1] in {"。", ".", "！", "！", "？", "?"}:
+            text = text[:-1].rstrip()
 
         return text
 

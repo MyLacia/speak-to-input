@@ -2,13 +2,17 @@
 faster-whisper>=1.0.0
 sounddevice>=0.4.6
 pynput>=1.7.6
-PyQt5>=5.15.0
 numpy>=1.24.0
 pyyaml>=6.0
 pyperclip>=1.8.2
+huggingface-hub>=0.17.0
+opencc>=1.1.6  # Traditional to Simplified Chinese conversion
+
+# Optional: GUI (not required for CLI version)
+# PyQt5>=5.15.0
 
 # Additional utilities
-pyaudio>=0.2.13
+# pyaudio>=0.2.13
 
-# Build tools (for creating exe)
-pyinstaller>=6.0.0
+# Build tools (optional, for creating exe)
+# pyinstaller>=6.0.0

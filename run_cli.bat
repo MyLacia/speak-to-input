@@ -1,7 +1,5 @@
 @echo off
-chcp 65001 >nul
-echo Starting...
-
-venv_py39\Scripts\python.exe cli_app.py
-
+chcp 65001 >/dev/null
+cd /d "%~dp0"
+python run_cli.py
 pause

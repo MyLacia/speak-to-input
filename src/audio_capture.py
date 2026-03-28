@@ -169,6 +169,19 @@ class AudioCapture:
             # Create input stream
             try:
                 device = self.config.device_index if self.config.device_index is not None else None
+
+                # Log device information
+                if device is not None:
+                    logger.info(f"Using configured audio device: {device}")
+                    device_info = sd.query_devices(device)
+                    logger.info(f"  Device name: {device_info['name']}")
+                else:
+                    # Use system default
+                    default_device = sd.default.device[0]
+                    logger.info(f"Using system default audio device: {default_device}")
+                    device_info = sd.query_devices(default_device)
+                    logger.info(f"  Device name: {device_info['name']}")
+
                 self.stream = sd.InputStream(
                     samplerate=self.sample_rate,
                     channels=self.channels,
