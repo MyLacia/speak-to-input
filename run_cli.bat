@@ -5,7 +5,7 @@ python bootstrap.py
 if %ERRORLEVEL% NEQ 0 (
     if exist .bootstrap_done del .bootstrap_done
     echo.
-    echo 程序异常退出 (错误码: %ERRORLEVEL%)
-    echo 下次启动将重新检查环境。
+    echo Error exit code: %ERRORLEVEL%
+    echo Will re-check environment on next launch.
 )
 pause
