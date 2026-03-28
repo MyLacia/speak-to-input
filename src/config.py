@@ -48,18 +48,16 @@ class VADConfig:
 @dataclass
 class TranscriberConfig:
     """Speech recognition configuration"""
-    model_size: Literal["tiny", "base", "small", "medium", "large"] = "base"
+    model_size: str = "paraformer-zh"
     language: Optional[str] = None  # None for auto-detect
-    compute_type: str = "auto"  # auto, float16, int8, etc.
     device: Optional[str] = None  # None for auto-detect (cuda/cpu)
-    num_workers: int = 1
     beam_size: int = 5
 
 
 @dataclass
 class AudioConfig:
     """Audio capture configuration"""
-    sample_rate: int = 16000  # Whisper native sample rate
+    sample_rate: int = 16000  # 16kHz native sample rate
     channels: int = 1
     chunk_duration: float = 0.5  # Duration of each audio chunk in seconds
     device_index: Optional[int] = None  # None for default microphone

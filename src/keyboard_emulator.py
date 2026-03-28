@@ -476,15 +476,6 @@ class GlobalKeyListener:
 
         except Exception as e:
             logger.error(f"Error in on_release: {e}")
-            if key in (Key.alt_l, Key.alt_r, Key.alt):
-                if self.alt_pressed:
-                    self.alt_pressed = False
-                    logger.debug("ALT key released")
-                    if self.on_alt_release:
-                        self.on_alt_release()
-
-        except Exception as e:
-            logger.error(f"Error in on_release: {e}")
 
     def _key_to_string(self, key: Union[Key, KeyCode]) -> str:
         """Convert a key object to string representation"""

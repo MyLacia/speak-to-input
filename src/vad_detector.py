@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Voice Activity Detection (VAD) module.
-Detects speech segments in audio stream using faster-whisper's VAD.
+Provides multiple VAD strategies: energy-based, manual, and continuous keyword-triggered.
 """
 
 import numpy as np
@@ -29,7 +29,7 @@ class SpeechSegment:
 
 
 class VADDetector:
-    """Voice Activity Detection using faster-whisper VAD"""
+    """Voice Activity Detection using Silero VAD model (optional)"""
 
     def __init__(self, config: Optional[VADConfig] = None, sample_rate: int = 16000):
         """
@@ -363,7 +363,7 @@ class ContinuousVAD:
         self._sliding_window_overlap = 0.5  # Keep 50% of buffer for overlap detection
 
         # Async trigger detection state
-        self._detection_checking = False  # True while Whisper is running in background
+        self._detection_checking = False  # True while ASR is running in background
         self._detection_result: Optional[bool] = None  # Result from background check
         self._detection_thread: Optional[threading.Thread] = None
         self._detection_lock = threading.Lock()

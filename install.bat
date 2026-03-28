@@ -14,11 +14,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/4] 检查 Python 版本...
+echo [1/5] 检查 Python 版本...
 python --version
 
 echo.
-echo [2/4] 创建虚拟环境...
+echo [2/5] 创建虚拟环境...
 if exist venv_py39 (
     echo 虚拟环境已存在，跳过创建
 ) else (
@@ -32,7 +32,14 @@ if exist venv_py39 (
 )
 
 echo.
-echo [3/4] 安装依赖包...
+echo [3/5] 安装 PyTorch CPU 版本...
+venv_py39\Scripts\python.exe -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+if errorlevel 1 (
+    echo [警告] PyTorch 安装失败，尝试继续...
+)
+
+echo.
+echo [4/5] 安装依赖包...
 venv_py39\Scripts\python.exe -m pip install --upgrade pip
 venv_py39\Scripts\python.exe -m pip install -r requirements.txt
 if errorlevel 1 (
@@ -43,7 +50,7 @@ if errorlevel 1 (
 echo 依赖安装完成
 
 echo.
-echo [4/4] 下载 Whisper 模型...
+echo [5/5] 下载 Paraformer 模型...
 echo 注意: 首次下载需要时间（约3-10分钟）
 echo.
 venv_py39\Scripts\python.exe download_model.py

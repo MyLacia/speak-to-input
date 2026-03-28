@@ -222,7 +222,7 @@ class CLIApplication:
                 self._print_status()
 
     def _load_model(self):
-        """Load the Whisper model"""
+        """Load the ASR model"""
         from config import get_config
         from transcriber import Transcriber
 
