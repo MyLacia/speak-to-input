@@ -39,6 +39,7 @@ env/
 # Application specific
 models/
 logs/
+.bootstrap_done
 *.log
 config.yaml
 .env

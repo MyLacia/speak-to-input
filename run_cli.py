@@ -165,17 +165,24 @@ class CLIApplication:
             result = self.transcriber.transcribe(audio)
             if result and result.text:
                 text = self.transcriber.post_process(result.text)
-                print(f"\n>>> 识别: {text}")
 
-                # Send text if keyboard emulator available
-                if self.keyboard_emulator:
-                    self._print_status("正在发送...")
-                    time.sleep(0.5)  # Give user time to switch to target app
-                    success = self.keyboard_emulator.send_text(text)
-                    if success:
-                        print(f"\n>>> 已发送 ({len(text)} 字符)")
-                    else:
-                        print(f"\n>>> 发送失败")
+                # In continuous mode, strip trigger word from the beginning
+                if self.mode == "continuous":
+                    text = self._strip_trigger_word(text)
+
+                if not text:
+                    print(f"\n>>> 触发词后无有效语音")
+                else:
+                    print(f"\n>>> 识别: {text}")
+                    # Send text if keyboard emulator available
+                    if self.keyboard_emulator:
+                        self._print_status("正在发送...")
+                        time.sleep(0.5)  # Give user time to switch to target app
+                        success = self.keyboard_emulator.send_text(text)
+                        if success:
+                            print(f"\n>>> 已发送 ({len(text)} 字符)")
+                        else:
+                            print(f"\n>>> 发送失败")
             else:
                 print(f"\n>>> 未识别到语音")
         except Exception as e:
@@ -183,6 +190,25 @@ class CLIApplication:
             print(f"\n>>> 识别错误: {e}")
 
         self._print_status()
+
+    def _strip_trigger_word(self, text: str) -> str:
+        """Remove trigger word (and its fuzzy matches) from the beginning of text."""
+        if not text:
+            return text
+
+        # Same fuzzy match list used by ContinuousVAD._do_trigger_check
+        trigger_variants = ['嘿', '诶', '哎', '咳', '黑', '喂', '哈', '和', '赫', '合']
+        import re
+
+        for variant in trigger_variants:
+            # Match variant at the start, followed by optional punctuation/whitespace
+            pattern = rf'^{re.escape(variant)}[\s,，。.！!？?、]*'
+            new_text = re.sub(pattern, '', text)
+            if new_text != text:
+                logger.info(f"Stripped trigger word '{variant}' from output")
+                return new_text
+
+        return text
 
     def _process_audio_async(self, audio):
         """Process captured audio in background thread (non-blocking)"""

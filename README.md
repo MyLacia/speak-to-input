@@ -2,42 +2,28 @@
 
 > 本地语音识别，实时文字输入。基于 FunASR Paraformer（阿里达摩院中文语音模型），无需网络连接。
 
-**注意：持续检测模式（说"嘿"触发）目前存在 bug，暂时无法修复，请不要使用。请使用鼠标长按模式。**
-
 ---
 
 ## 快速开始（Windows）
 
-### 第一次使用
-
 ```
-1. 双击运行 install.bat
-2. 等待自动安装和下载模型（约5-10分钟）
-3. 双击运行 run_cli.bat
+1. 克隆项目: git clone https://github.com/MyLacia/speak-to-input.git
+2. 双击运行 run_cli.bat
+3. 首次运行自动安装依赖 + 下载模型（约5-10分钟）
 4. 打开记事本，在输入框长按鼠标左键说话
 ```
+
+> 首次运行后，后续启动直接进入应用，不再重复安装。
 
 ### 手动安装
 
 ```bash
-# 1. 克隆项目
 git clone https://github.com/MyLacia/speak-to-input.git
 cd speak-to-input
-
-# 2. 创建虚拟环境
 python -m venv venv_py39
 venv_py39\Scripts\activate
-
-# 3. 安装 PyTorch CPU 版本
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# 4. 安装依赖
 pip install -r requirements.txt
-
-# 5. 下载模型
-python download_model.py
-
-# 6. 运行
 python run_cli.py
 ```
 
@@ -99,6 +85,7 @@ python run_cli.py --mode continuous   # 持续模式
 ## 功能特点
 
 - **两种监听模式**: 鼠标长按触发 / 关键词持续监听
+- **一键启动**: 首次双击 run_cli.bat 自动创建虚拟环境、安装依赖、下载模型
 - **智能光标检测**: 只有在有输入光标的位置才会触发录音，避免误操作
 - **中文精准识别**: 使用 FunASR Paraformer-zh 中文专用模型，同音词区分更精确
 - **自动标点**: 使用 ct-punc 标点模型，根据语音停顿自动添加逗号
@@ -120,12 +107,11 @@ python run_cli.py --mode continuous   # 持续模式
 
 ```
 speak-to-input/
-├── install.bat           # 一键安装脚本
-├── run_cli.bat           # 启动脚本
+├── run_cli.bat           # 启动脚本（自动安装依赖）
+├── bootstrap.py          # 依赖自检与安装脚本
 ├── run_cli.py            # CLI 主程序
-├── download_model.py     # 模型下载脚本
 ├── requirements.txt      # 依赖列表
-├── config.yaml           # 配置文件
+├── config.yaml           # 配置文件（可选）
 ├── src/                  # 源代码
 │   ├── config.py         # 配置管理
 │   ├── transcriber.py    # 语音识别引擎（FunASR Paraformer）
@@ -185,6 +171,11 @@ continuous:
 - 记事本、文本编辑器
 - 浏览器的搜索框、输入框
 - 微信、QQ等聊天软件的输入框
+
+### 依赖安装失败
+
+- 删除项目根目录下的 `.bootstrap_done` 文件，重新双击 `run_cli.bat`
+- 或手动删除 `venv_py39/` 目录后重试
 
 ---
 

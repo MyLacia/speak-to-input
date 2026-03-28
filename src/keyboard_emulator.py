@@ -163,7 +163,6 @@ def has_editable_cursor() -> bool:
 
     # Check 3: Cursor shape (IBeam = text cursor)
     try:
-        # Get cursor info
         class CURSORINFO(ctypes.Structure):
             _fields_ = [
                 ('cbSize', wintypes.DWORD),
@@ -176,15 +175,15 @@ def has_editable_cursor() -> bool:
         cursor_info.cbSize = ctypes.sizeof(CURSORINFO)
 
         if user32.GetCursorInfo(ctypes.byref(cursor_info)):
-            # Check if it's an IBeam cursor (IDC_IBEAM = 32514)
-            # IBeam cursor indicates text input position
-            if cursor_info.hCursor:
-                # 32514 is the IBeam cursor handle
-                # We check if the cursor is likely an IBeam
-                cursor_type = user32.GetCursor()
-                # Common IBeam cursor values
-                if cursor_type in (32514, 65541, 65543):
-                    logger.debug(f"Editable cursor detected by cursor shape: {cursor_type}")
+            # GetCursorInfo returns the global cursor handle in hCursor,
+            # which works from any thread — unlike GetCursor() which is
+            # thread-local and returns NULL from background threads.
+            cursor_handle = cursor_info.hCursor
+            if cursor_handle:
+                # Load the standard IBeam cursor for comparison
+                ibeam = user32.LoadCursorW(None, 32513)  # IDC_IBEAM = 32513
+                if ibeam and cursor_handle == ibeam:
+                    logger.debug("Editable cursor detected by IBeam cursor shape")
                     return True
     except Exception as e:
         logger.debug(f"Cursor check failed: {e}")

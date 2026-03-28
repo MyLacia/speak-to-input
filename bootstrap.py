@@ -20,6 +20,9 @@ REQUIREMENTS = ROOT_DIR / "requirements.txt"
 # PyTorch CPU-only index (avoids downloading 2GB+ CUDA packages)
 TORCH_INDEX_URL = "https://download.pytorch.org/whl/cpu"
 
+# Stamp file written after all checks pass — skip re-check if it exists
+BOOTSTRAP_STAMP = ROOT_DIR / ".bootstrap_done"
+
 
 def run(cmd, **kwargs):
     """Run a subprocess and stream output to console."""
@@ -142,6 +145,24 @@ def ensure_deps():
     return True
 
 
+def is_bootstrapped():
+    """Check if bootstrap was already completed successfully."""
+    return BOOTSTRAP_STAMP.exists()
+
+
+def mark_bootstrapped():
+    """Write stamp file to skip future checks."""
+    BOOTSTRAP_STAMP.write_text("ok", encoding="utf-8")
+
+
+def clear_bootstrap_stamp():
+    """Remove stamp so next run re-checks dependencies."""
+    try:
+        BOOTSTRAP_STAMP.unlink()
+    except FileNotFoundError:
+        pass
+
+
 def launch_app():
     """Replace current process with run_cli.py using venv Python."""
     print("\n" + "=" * 55)
@@ -154,6 +175,16 @@ def launch_app():
 def main():
     print("Speak to Input - 环境检查")
     print()
+
+    # Fast path: skip all checks if previously completed
+    if is_bootstrapped():
+        print("[OK] 环境已就绪，跳过检查")
+        launch_app()
+        # execv replaces this process; if we're still here, venv is broken
+        clear_bootstrap_stamp()
+        print("[ERROR] 启动失败，已清除缓存，下次运行将重新检查。")
+        input("按回车键退出...")
+        sys.exit(1)
 
     if not ensure_venv():
         print("\n环境准备失败，请检查错误信息。")
@@ -170,6 +201,8 @@ def main():
         input("按回车键退出...")
         sys.exit(1)
 
+    # All checks passed — write stamp for next run
+    mark_bootstrapped()
     launch_app()
 
 
